@@ -1,6 +1,6 @@
 // Extra scripts: touch-friendly Interests animations and lighter hero video loading
 (function () {
-  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function calmOn() { return document.documentElement.classList.contains("calm"); } // Calm mode (also on by default for visitors who prefer reduced motion)
 
   // ---------- 1. Interests cards: animate on hover (mouse) and on scroll/tap (touch) ----------
   var cards = document.querySelectorAll(".services .service-item");
@@ -10,7 +10,7 @@
   function setActive(card, on) {
     card.classList.toggle("is-active", on);
     var img = card.querySelector(".rocket-img");
-    if (img && !reduce) img.src = on ? img.dataset.anim : img.dataset.still;
+    if (img && !calmOn()) img.src = on ? img.dataset.anim : img.dataset.still;
   }
 
   // Mouse: same behaviour as before (hover)
@@ -21,7 +21,7 @@
 
   // Touch screens (no hover): play while the card is on screen, and toggle on tap
   var touch = window.matchMedia && matchMedia("(hover: none)").matches;
-  if (touch && !reduce && "IntersectionObserver" in window) {
+  if (touch && "IntersectionObserver" in window) {
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (e) { setActive(e.target, e.isIntersecting); });
     }, { threshold: 0.7 });
@@ -39,7 +39,7 @@
     var c = navigator.connection || {};
     var small = window.matchMedia && matchMedia("(max-width: 767px)").matches;
     var slow = c.saveData || /(^|-)2g$|3g/.test(c.effectiveType || "");
-    if (!small && !slow && !reduce && hero.dataset.src && !hero.getAttribute("src")) {
+    if (!small && !slow && !calmOn() && hero.dataset.src && !hero.getAttribute("src")) {
       hero.src = hero.dataset.src;
       hero.load();
       var p = hero.play(); if (p && p.catch) p.catch(function () {});
@@ -56,6 +56,11 @@
     // otherwise the poster image (hero-bg.jpg) stays as the background
   }
   if (hero) {
+    document.addEventListener("calm:change", function () {
+      if (calmOn()) { hero.pause(); return; }
+      if (hero.getAttribute("src")) { var q = hero.play(); if (q && q.catch) q.catch(function () {}); }
+      else { var seen = false; try { seen = !!sessionStorage.getItem("splashSeen"); } catch (e) {} if (seen) startHero(); }
+    });
     // wait for the welcome screen: the video starts only after the visitor presses Enter
     var splashUp = document.getElementById("splash") && !document.documentElement.classList.contains("no-splash");
     if (splashUp) document.addEventListener("splash:leave", startHero, { once: true });
@@ -148,8 +153,10 @@
     bar.innerHTML = '<span class="rb-line"></span><div class="rb-tower"></div><span class="rb-ground"></span><span class="rb-smoke"></span><div class="rb-arm">' + ARM + '</div><div class="rb-rocket">' +
       '<div class="rb-boost">' + BOOSTER + '<div class="rb-bflame">' + FLAME + '</div></div>' +
       '<div class="rb-flash"></div>' +
-      '<div class="rb-ship"><div class="rb-sflame">' + FLAME + '</div><div class="rb-plasma"></div><img class="rb-img" src="' + src + '" alt="" draggable="false"></div></div>';
+      '<div class="rb-ship"><div class="rb-sflame">' + FLAME + '</div><div class="rb-plasma"></div><img class="rb-img" src="' + (cls === "page" && document.documentElement.classList.contains("dark") ? "assets/img/starship-white.png" : src) + '" alt="" draggable="false"></div></div>';
     document.body.appendChild(bar);
+    var tele = null;
+    if (cls === "page") { tele = document.createElement("div"); tele.className = "rb-tele"; bar.appendChild(tele); }
     var rocket = bar.querySelector(".rb-rocket"), ship = bar.querySelector(".rb-ship"), sflame = bar.querySelector(".rb-sflame"),
         plasma = bar.querySelector(".rb-plasma"), flash = bar.querySelector(".rb-flash"), boost = bar.querySelector(".rb-boost"),
         bflame = bar.querySelector(".rb-bflame"), tower = bar.querySelector(".rb-tower"), smoke = bar.querySelector(".rb-smoke"), th = 0, arm = bar.querySelector(".rb-arm"), page = sc === window, last = null, mode = "down";
@@ -201,10 +208,20 @@
       plasma.style.opacity = pl;
       ship.style.filter = pl > 0.03 ? "drop-shadow(0 0 " + (2 + 5 * pl) + "px rgba(255,110,40," + (0.9 * pl) + "))" : "none";
       var h = Math.min(235, H - 6);
-      if (h !== th) { th = h; tower.innerHTML = towerSVG(h); }
+      if (h > 60 && h !== th) { th = h; tower.innerHTML = towerSVG(h); }
       smoke.style.opacity = mode === "up" ? 0.85 * ramp(f, 0.72, 0.95) : 0.5 * ramp(f, 0.93, 1); // launch smoke / landing dust
       arm.style.top = (mode === "up" ? H - 98 : H - 118) + "px";         // booster catch height / ship catch height
       arm.classList.toggle("closed", closed);
+      if (tele) {                                                          // illustrative telemetry (not real data)
+        var up = mode === "up", u = 1 - f, ph;
+        var alt = 150 * Math.pow(1 - f, 1.7), vel = up ? 27000 * Math.pow(u, 1.3) : 27000 * Math.pow(1 - f, 0.8);
+        var t = Math.round(up ? 540 * u : 540 + 3300 * f);
+        if (up) ph = f > 0.975 ? "ENGINE START" : Math.abs(f - STAGE) < 0.03 ? "HOT STAGING" : f < 0.1 ? "ENGINE CUT-OFF" : (u > 0.08 && u < 0.2) ? "MAX-Q" : "ASCENT";
+        else ph = f < 0.05 ? "COAST" : f < 0.86 ? "RE-ENTRY" : f < 0.92 ? "FLIP" : f < 0.985 ? "LANDING BURN" : "CAUGHT";
+        var mm = ("0" + Math.floor(t / 60)).slice(-2) + ":" + ("0" + (t % 60)).slice(-2);
+        tele.style.top = (f * span + 8) + "px";
+        tele.innerHTML = "<b>" + ph + "</b>T+ " + mm + "<br>" + Math.round(alt) + " km<br>" + String(Math.round(vel / 100) * 100).replace(/\B(?=(\d{3})+(?!\d))/g, ",") + " km/h";
+      }
     }
     function seek(e) {
       var r = bar.getBoundingClientRect(), s = m();
