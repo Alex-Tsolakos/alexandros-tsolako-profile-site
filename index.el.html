@@ -71,7 +71,7 @@
 
     <!-- Hero -->
     <section id="hero" class="hero section dark-background">
-      <video class="hero-video" autoplay muted loop playsinline preload="auto" poster="assets/img/hero-bg.jpg" aria-hidden="true"><source src="assets/video/hero.mp4" type="video/mp4"></video>
+      <video class="hero-video" muted loop playsinline preload="none" poster="assets/img/hero-bg.jpg" data-src="assets/video/hero.mp4" aria-hidden="true"></video>
       <div class="container" data-aos="zoom-out">
         <div class="row justify-content-center">
           <div class="col-lg-9">
@@ -415,6 +415,7 @@
   <script src="https://cdn.jsdelivr.net/npm/isotope-layout@3.0.6/dist/isotope.pkgd.min.js"></script>
   <script src="assets/js/main.js"></script>
   <script src="assets/js/contact.js"></script>
-<script>(function(){var m=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;if(m)return;var i=document.querySelector('.rocket-img');if(!i)return;var c=i.closest('.service-item');var a=i.dataset.anim,s=i.dataset.still;(new Image()).src=a;c.addEventListener('mouseenter',function(){i.src=a});c.addEventListener('mouseleave',function(){i.src=s});})();</script>
+  <script src="assets/js/extras.js"></script>
+
 </body>
 </html>

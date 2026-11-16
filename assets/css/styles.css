@@ -22,3 +22,8 @@ del{color:#6c7a85;text-decoration-color:var(--flame);text-decoration-thickness:2
 .video-grid .video-frame{max-width:100%}
 .video-grid figcaption{text-align:center;margin-top:.6rem;color:#44525d;font-size:.95rem}
 @media (max-width:767px){.video-grid{grid-template-columns:1fr}}
+
+/* touch: cards animate when active (scrolled into view or tapped) */
+.service-item.is-active .an{animation-play-state:running}
+.services .service-item.is-active .title{color:var(--accent-color)}
+@media (hover:none){.services .service-item.is-active{transform:translateY(-4px);box-shadow:0 10px 24px rgba(20,30,60,.12);background:#fff}}
